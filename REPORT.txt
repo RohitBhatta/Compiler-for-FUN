@@ -1,0 +1,4 @@
+- Why does getchar return an int instead of a char?
+
+- Why is the 16 byte alignment there for the stack pointer? What will break if
+  you ignored that requirement in your code?
