@@ -20,6 +20,8 @@ int intSize = 0;
 int first = 0;
 int variableCount = 0;
 int count = 0;
+int elseCount = 0;
+int finishedCount = 0;
 
 //Struct
 struct Entry {
@@ -99,7 +101,7 @@ void set(char *id) {
         printf("%s", id);
         printf(", %%rsi\n");
         printf("    mov %%r15, %%rdx\n");
-        printf("    call printf\n");*/
+        rintf("    call printf\n");*/
     //}
 }
 
@@ -363,16 +365,18 @@ void e3(void) {
 /* handle '==' */
 void e4(void) {
     e3();
+    printf("    mov %%r15, %%r13\n");
     while (isEqEq()) {
         consume(2);
         e3();
+        printf("    mov %%r15, %%r14\n");
+        printf("    cmp %%r13, %%r14\n");
+        printf("%s%d\n", "    jne else", elseCount);
     }
-    //printf("    pop %%r13\n");
 }
 
 void expression(void) {
     e4();
-    //printf("    pop %%r13\n");
 }
 
 int statement(void) {
@@ -400,14 +404,16 @@ int statement(void) {
     } else if (isIf()) {
         consume(2);
         expression();
-
+        printf("%s%d\n", "    jmp finished", finishedCount);
         statement();
-
+        printf("%s%d%s\n", "    else", elseCount, ":");
         if (isElse()) {
             consume(4);
-            //printf("    else:");
             statement();
         }
+        printf("%s%d%s\n", "finished", finishedCount, ":");
+        elseCount++;
+        finishedCount++;
         return 1;
     } else if (isWhile()) {
         consume(5);
