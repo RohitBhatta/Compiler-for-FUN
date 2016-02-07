@@ -19,8 +19,7 @@ int idSize = 0;
 int intSize = 0;
 int first = 0;
 int variableCount = 0;
-int add = 0;
-int mul = 0;
+int count = 0;
 
 //Struct
 struct Entry {
@@ -92,6 +91,7 @@ void set(char *id) {
         printf("%s", "var");
         printf(", %%rsi\n");
         printf("    mov %%r15, %%rdx\n");
+        printf("    mov $0, %%rax\n");
         printf("    call printf\n");
         //variableCount++;
         /*printf("    mov p3_format, %%rdi\n");
@@ -303,31 +303,24 @@ void seq(void);
 void e1() {
     if (isLeft()) {
         consume(1);
+        //printf("    push %%r13\n");
         expression();
         if (!isRight()) {
             error();
         }
         consume(1);
+        //printf("    pop %%r13\n");
     } else if (isInt()) {
         int v = getInt();
         consume(intSize);
+        printf("    push %%r13\n");
+        //printf("    mov %%r15, %%r14\n");
         printf("    mov $");
         printf("%d", v);
         printf(", %%r13\n");
-        if (add) {printf("    mov %%r13, %%r14\n");}
-        else {printf("    mov %%r13, %%r15\n");}
-        if (add) {
-            printf("    mov %%r14, %%r13\n");
-            printf("    mov $");
-            printf("%d", v);
-            printf(", %%r14\n");
-        }
-        else {
-            printf("    mov %%r15, %%r13\n");
-            printf("    mov $");
-            printf("%d", v);
-            printf(", %%r15\n");
-        }
+        printf("    mov %%r13, %%r15\n");
+        //printf("    mov %%r14, %%r13\n");
+        printf("    pop %%r13\n");
     } else if (isId()) {
         char *id = getId();
         consume(idSize);
@@ -339,30 +332,32 @@ void e1() {
 
 /* handle '*' */
 void e2(void) {
+    printf("    push %%r13\n");
     e1();
+    printf("    pop %%r13\n");
     while (isMul()) {
         consume(1);
-        mul = 1;
+        printf("    mov %%r15, %%r13\n");
         printf("    push %%r13\n");
         e1();
-        printf("    imul %%r13, %%r15\n");
         printf("    pop %%r13\n");
+        printf("    imul %%r13, %%r15\n");
     }
-    mul = 0;
 }
 
 /* handle '+' */
 void e3(void) {
+    printf("    push %%r13\n");
     e2();
+    printf("    pop %%r13\n");
     while (isPlus()) {
         consume(1);
-        add = 1;
+        printf("    mov %%r15, %%r13\n");
         printf("    push %%r13\n");
         e2();
-        printf("    add %%r13, %%r14\n");
         printf("    pop %%r13\n");
+        printf("    add %%r13, %%r15\n");
     }
-    add = 0;
 }
 
 /* handle '==' */
@@ -372,10 +367,12 @@ void e4(void) {
         consume(2);
         e3();
     }
+    //printf("    pop %%r13\n");
 }
 
 void expression(void) {
     e4();
+    //printf("    pop %%r13\n");
 }
 
 int statement(void) {
@@ -493,7 +490,7 @@ void compile(void) {
     printf("    ret\n");
     printf("    .data\n");
 
-    printf("p3_format: .string\"%%s:%%d\n\"\n");
+    printf("p3_format: .string\"%%s:%%d\\n\"\n");
     /*char formatString[] = "[%d]%c";
     for (int i=0; i<sizeof(formatString); i++) {
         printf("    .byte %d\n",formatString[i]);
