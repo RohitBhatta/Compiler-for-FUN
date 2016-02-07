@@ -18,6 +18,7 @@ char *input;
 int idSize = 0;
 int intSize = 0;
 int first = 0;
+int variableCount = 0;
 
 //Struct
 struct Entry {
@@ -68,9 +69,11 @@ void set(char *id) {
         printf("    mov $p3_format, %%rdi\n");
         printf("    mov $");
         printf("%s", id);
+        printf("%s", "var");
         printf(", %%rsi\n");
         printf("    mov %%r15, %%rdx\n");
         printf("    call printf\n");
+        variableCount++;
         /*printf("    mov p3_format, %%rdi\n");
         printf("    mov ");
         printf("%s", id);
@@ -425,6 +428,7 @@ void compile(void) {
     input[pos] = '\0';
     printf("    .text\n");
     printf("    .global main\n");
+    printf("    .extern printf\n");
     printf("main:\n");
     printf("    push %%r13\n");
     printf("    push %%r14\n");
@@ -454,7 +458,7 @@ void compile(void) {
     printf("    ret\n");
     printf("    .data\n");
 
-    printf("p3_format: .string \"%%s:%%d\"\n");
+    printf("p3_format: .string \"%%s:%%d\n\"\n");
     /*char formatString[] = "[%d]%c";
     for (int i=0; i<sizeof(formatString); i++) {
         printf("    .byte %d\n",formatString[i]);
@@ -465,15 +469,41 @@ void compile(void) {
     }
     printf("%s\n", "table is not null");
     printf("%s\n", table -> name);*/
+    //char *list[variableCount];
+    //int index = 0;
+    int original = 1;
     while (table -> next != NULL) {
-        printf("    ");
-        printf("%s", table -> name);
-        printf(": .quad 0\n");
+        original = 1;
+        /*for (int i = 0; i < index; i++) {
+            if (strcmp(table -> name, list[i]) == 0) {
+                original = 0;
+            }
+        }*/
+        if (original) {
+            printf("    ");
+            printf("%s", table -> name);
+            printf(": .quad 0\n");
+            printf("    ");
+            printf("%s", table -> name);
+            printf("%s", "var");
+            printf(": .string ");
+            printf("\"");
+            printf("%s", table -> name);
+            printf("\"\n");
+        }
         table = table -> next;
+        //index++;
     }
     printf("    ");
     printf("%s", table -> name);
     printf(": .quad 0\n");
+    printf("    ");
+    printf("%s", table -> name);
+    printf("%s", "var");
+    printf(": .string ");
+    printf("\"");
+    printf("%s", table -> name);
+    printf("\"\n");
     table = table -> next;
 }
 
