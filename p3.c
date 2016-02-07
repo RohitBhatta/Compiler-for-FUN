@@ -19,6 +19,8 @@ int idSize = 0;
 int intSize = 0;
 int first = 0;
 int variableCount = 0;
+int add = 0;
+int mul = 0;
 
 //Struct
 struct Entry {
@@ -41,6 +43,7 @@ void get(char *id) {
 }
 
 void set(char *id) {
+    int same = 0;
     struct Entry *current = (struct Entry *) malloc(sizeof(struct Entry));
     if (first == 0) {
         table -> name = id;
@@ -50,12 +53,29 @@ void set(char *id) {
     else {
         current = table;
         while (current -> next != NULL) {
+            if (strcmp(current -> name, id) == 0) {
+                same = 1;
+            }
             current = current -> next;
         }
+        if (strcmp(current -> name, id) == 0) {
+            same = 1;
+        }
     }
-    current -> next = malloc(sizeof(struct Entry));
-
-    //No memory left
+    if (!same) {
+        current -> next = malloc(sizeof(struct Entry));
+        //No memory left
+        if (current -> next == NULL) {
+            printf("Out of memory\n");
+        }
+        //Assign and print values
+        else {
+            current = current -> next;
+            current -> name = id;
+            current -> next = NULL;
+        }
+    }
+    /*//No memory left
     if (current -> next == NULL) {
         printf("Out of memory\n");
     }
@@ -63,7 +83,7 @@ void set(char *id) {
     else {
         current = current -> next;
         current -> name = id;
-        current -> next = NULL;
+        current -> next = NULL;*/
         printf("    mov %%r15, ");
         printf("%s\n", id);
         printf("    mov $p3_format, %%rdi\n");
@@ -73,14 +93,14 @@ void set(char *id) {
         printf(", %%rsi\n");
         printf("    mov %%r15, %%rdx\n");
         printf("    call printf\n");
-        variableCount++;
+        //variableCount++;
         /*printf("    mov p3_format, %%rdi\n");
         printf("    mov ");
         printf("%s", id);
         printf(", %%rsi\n");
         printf("    mov %%r15, %%rdx\n");
         printf("    call printf\n");*/
-    }
+    //}
 }
 
 char peekChar(void) {
@@ -291,12 +311,23 @@ void e1() {
     } else if (isInt()) {
         int v = getInt();
         consume(intSize);
-        printf("    push %%r13\n");
         printf("    mov $");
         printf("%d", v);
         printf(", %%r13\n");
-        printf("    mov %%r13, %%r15\n");
-        printf("    pop %%r13\n");
+        if (add) {printf("    mov %%r13, %%r14\n");}
+        else {printf("    mov %%r13, %%r15\n");}
+        if (add) {
+            printf("    mov %%r14, %%r13\n");
+            printf("    mov $");
+            printf("%d", v);
+            printf(", %%r14\n");
+        }
+        else {
+            printf("    mov %%r15, %%r13\n");
+            printf("    mov $");
+            printf("%d", v);
+            printf(", %%r15\n");
+        }
     } else if (isId()) {
         char *id = getId();
         consume(idSize);
@@ -311,11 +342,13 @@ void e2(void) {
     e1();
     while (isMul()) {
         consume(1);
+        mul = 1;
         printf("    push %%r13\n");
         e1();
         printf("    imul %%r13, %%r15\n");
         printf("    pop %%r13\n");
     }
+    mul = 0;
 }
 
 /* handle '+' */
@@ -323,11 +356,13 @@ void e3(void) {
     e2();
     while (isPlus()) {
         consume(1);
+        add = 1;
         printf("    push %%r13\n");
         e2();
-        printf("    add %%r13, %%r15\n");
+        printf("    add %%r13, %%r14\n");
         printf("    pop %%r13\n");
     }
+    add = 0;
 }
 
 /* handle '==' */
@@ -458,7 +493,7 @@ void compile(void) {
     printf("    ret\n");
     printf("    .data\n");
 
-    printf("p3_format: .string \"%%s:%%d\n\"\n");
+    printf("p3_format: .string\"%%s:%%d\n\"\n");
     /*char formatString[] = "[%d]%c";
     for (int i=0; i<sizeof(formatString); i++) {
         printf("    .byte %d\n",formatString[i]);
@@ -469,30 +504,18 @@ void compile(void) {
     }
     printf("%s\n", "table is not null");
     printf("%s\n", table -> name);*/
-    //char *list[variableCount];
-    //int index = 0;
-    int original = 1;
     while (table -> next != NULL) {
-        original = 1;
-        /*for (int i = 0; i < index; i++) {
-            if (strcmp(table -> name, list[i]) == 0) {
-                original = 0;
-            }
-        }*/
-        if (original) {
-            printf("    ");
-            printf("%s", table -> name);
-            printf(": .quad 0\n");
-            printf("    ");
-            printf("%s", table -> name);
-            printf("%s", "var");
-            printf(": .string ");
-            printf("\"");
-            printf("%s", table -> name);
-            printf("\"\n");
-        }
+        printf("    ");
+        printf("%s", table -> name);
+        printf(": .quad 0\n");
+        printf("    ");
+        printf("%s", table -> name);
+        printf("%s", "var");
+        printf(": .string ");
+        printf("\"");
+        printf("%s", table -> name);
+        printf("\"\n");
         table = table -> next;
-        //index++;
     }
     printf("    ");
     printf("%s", table -> name);
