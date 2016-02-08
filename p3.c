@@ -21,6 +21,8 @@ int first = 0;
 int variableCount = 0;
 int count = 0;
 int elseCount = 0;
+int completeCount = 0;
+int againCount = 0;
 int finishedCount = 0;
 
 //Struct
@@ -38,9 +40,15 @@ static void error() {
     longjmp(escape, 1);
 }
 
-//MIGHT NOT NEED THIS FUNCTION
-void get(char *id) {
-    
+int get(char *id) {
+    struct Entry *head = table;
+    while (head != NULL) {
+        if (strcmp(head -> name, id) == 0) {
+            return 1;
+        }
+        head = head -> next;
+    }
+    return 0;
 }
 
 void set(char *id) {
@@ -240,7 +248,7 @@ int isId() {
             return 0;
         }
     }
-    if (idSize == 4) {
+    if (idSize == 5) {
         if (input[0] == 'w' && input[1] == 'h' && input[2] == 'i' && 
             input[3] == 'l' && input[4] == 'e') {
             return 0;
@@ -265,10 +273,11 @@ int isPlus() {
 
 char *getId() {
     char *myId;
-    myId = malloc(idSize);
+    myId = malloc(idSize + 1);
     for (int i = 0; i < idSize; i++) {
         myId[i] = input[i];
     }
+    myId[idSize] = 0;
     return myId;
 }
 
@@ -326,7 +335,14 @@ void e1() {
     } else if (isId()) {
         char *id = getId();
         consume(idSize);
-        get(id);
+        if (get(id)) {
+            printf("    mov ");
+            printf("%s", id);
+            printf(", %%r15\n");
+        }
+        else {
+            printf("    mov $0, %%r15\n");
+        }
     } else {
         error();
     }
@@ -369,9 +385,9 @@ void e4(void) {
     while (isEqEq()) {
         consume(2);
         e3();
-        printf("    mov %%r15, %%r14\n");
-        printf("    cmp %%r13, %%r14\n");
-        printf("%s%d\n", "    jne else", elseCount);
+        printf("    cmp %%r13, %%r15\n");
+        printf("    setz %%r13b\n");
+        printf("    movzx %%r15b, %%r15\n");
     }
 }
 
@@ -404,21 +420,34 @@ int statement(void) {
     } else if (isIf()) {
         consume(2);
         expression();
-        printf("%s%d\n", "    jmp finished", finishedCount);
+        int elseTemp = elseCount;
+        int completeTemp = completeCount;
+        elseCount++;
+        completeCount++;
+        printf("    cmp $0, %%r15\n");
+        printf("%s%d\n", "    je else", elseTemp);
         statement();
-        printf("%s%d%s\n", "    else", elseCount, ":");
+        printf("%s%d\n", "    jmp complete", completeTemp);
+        printf("%s%d%s\n", "    else", elseTemp, ":");
         if (isElse()) {
             consume(4);
             statement();
         }
-        printf("%s%d%s\n", "finished", finishedCount, ":");
-        elseCount++;
-        finishedCount++;
+        printf("%s%d%s\n", "    complete", completeTemp, ":");
         return 1;
     } else if (isWhile()) {
         consume(5);
+        int againTemp = againCount;
+        int finishedTemp = finishedCount;
+        againCount++;
+        finishedCount++;
+        printf("%s%d%s\n", "    again", againTemp, ":");
         expression();
+        printf("    cmp $0, %%r15\n");
+        printf("%s%d\n", "    je finished", finishedTemp);
         statement();
+        printf("%s%d\n", "    jmp again", againTemp);
+        printf("%s%d%s\n", "    finished", finishedTemp, ":");
         return 1;
     } else if (isSemi()) {
         consume(1);
@@ -440,6 +469,7 @@ void program(void) {
 
 void compile(void) {
     table = (struct Entry *) malloc(sizeof(struct Entry));
+    table -> name = "";
     int pos = 0;
     int size = 16;
     input = (char *) malloc(16);
