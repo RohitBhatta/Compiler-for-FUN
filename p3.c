@@ -386,7 +386,7 @@ void e4(void) {
         consume(2);
         e3();
         printf("    cmp %%r13, %%r15\n");
-        printf("    setz %%r13b\n");
+        printf("    setz %%r15b\n");
         printf("    movzx %%r15b, %%r15\n");
     }
 }
