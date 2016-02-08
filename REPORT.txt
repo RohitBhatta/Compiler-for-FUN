@@ -1,4 +1,19 @@
 - Why does getchar return an int instead of a char?
 
+In C, characters are represented as ints, as shown by the ASCII table.
+The return type of int is also put in place to accomodate for the 
+special value End of File (EOF), represented as -1 (int). It is not 
+possible to represent the EOF with a value form 0-255, so we must 
+change the return type of getchar() to int.
+
+
 - Why is the 16 byte alignment there for the stack pointer? What will break if
   you ignored that requirement in your code?
+
+The reason there is a standardized 16 byte alignment for a stack pointer is 
+so Streaming SIMD Extenstions (SSE) can perform parallel operations on 
+multiple words in memory. However, these multiple words need to start at 
+an address which is a multiple of 16 bytes. It would simply just be much 
+more efficient on the hardware side, if we followed this standard. If we did 
+not follow the 16 byte alignment, compiling our code would result in a 
+segmentation fault in the x86 Assembly part.
